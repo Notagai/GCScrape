@@ -17,9 +17,7 @@ export async function GET(request: Request) {
 
   try {
     const { tokens } = await createOAuthClient().getToken(code);
-    if (!tokens.refresh_token) {
-      return NextResponse.json({ error: "Google did not return a refresh token. Try connecting again." }, { status: 400 });
-    }
+    if (!tokens.refresh_token) return NextResponse.json({ error: "Google did not return a refresh token. Try connecting again." }, { status: 400 });
 
     const response = NextResponse.redirect(new URL("/dashboard", request.url));
     response.cookies.set(sessionCookie, encryptRefreshToken(tokens.refresh_token), {
