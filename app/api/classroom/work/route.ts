@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { createClassroomClient } from "@/app/lib/google";
 import { decryptRefreshToken, sessionCookie } from "@/app/lib/session";
@@ -22,8 +23,8 @@ export async function GET(){
       submissions(classroom,courseId)
     ]);
     const byId=new Map(subs.filter(s=>s.courseWorkId).map(s=>[s.courseWorkId,s]));
-    const assignments:Item[]=work.map(item=>{const s=item.id?byId.get(item.id):undefined;const state=s?.state??null;return {id:item.id??crypto.randomUUID(),courseId,courseName:course.name??"Untitled class",type:"assignment",title:item.title??"Untitled assignment",description:item.description??null,state:item.state??null,submissionState:state,turnedIn:state==="TURNED_IN"||state==="RETURNED",dueDate:dateValue(item),dueTime:timeValue(item),alternateLink:item.alternateLink??null}});
-    const mats:Item[]=materials.map(item=>({id:item.id??crypto.randomUUID(),courseId,courseName:course.name??"Untitled class",type:"material",title:item.title??"Untitled material",description:item.description??null,state:item.state??null,submissionState:null,turnedIn:false,dueDate:null,dueTime:null,alternateLink:item.alternateLink??null}));
+    const assignments:Item[]=work.map(item=>{const s=item.id?byId.get(item.id):undefined;const state=s?.state??null;return {id:item.id??randomUUID(),courseId,courseName:course.name??"Untitled class",type:"assignment",title:item.title??"Untitled assignment",description:item.description??null,state:item.state??null,submissionState:state,turnedIn:state==="TURNED_IN"||state==="RETURNED",dueDate:dateValue(item),dueTime:timeValue(item),alternateLink:item.alternateLink??null}});
+    const mats:Item[]=materials.map(item=>({id:item.id??randomUUID(),courseId,courseName:course.name??"Untitled class",type:"material",title:item.title??"Untitled material",description:item.description??null,state:item.state??null,submissionState:null,turnedIn:false,dueDate:null,dueTime:null,alternateLink:item.alternateLink??null}));
     return [...assignments,...mats];
   }));
   return NextResponse.json({items:groups.flat()});
