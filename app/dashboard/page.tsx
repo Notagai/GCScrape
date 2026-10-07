@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 type Course = { id:string; name:string; section:string|null; room:string|null; state:string|null };
-type WorkItem = { id:string; type:"assignment"|"material"; title:string; description:string|null; state:string|null; dueDate:string|null; dueTime:string|null; alternateLink:string|null };
+type WorkItem = { id:string; type:"assignment"|"material"; title:string; description:string|null; state:string|null; submissionState:string|null; turnedIn:boolean; dueDate:string|null; dueTime:string|null; alternateLink:string|null };
 type SortKey = "due" | "title" | "type" | "state";
 type ViewFilter = "all" | "upcoming" | "overdue";
 
@@ -13,8 +13,7 @@ function dueTimestamp(item: WorkItem) {
 }
 
 function isTurnedIn(item: WorkItem) {
-  const state = (item.state ?? "").toLowerCase();
-  return state.includes("turned") || state.includes("submitted");
+  return item.turnedIn;
 }
 
 export default function DashboardPage() {
@@ -58,7 +57,7 @@ export default function DashboardPage() {
 
     const filtered = items.filter((item) => {
       const matchesType = typeFilter === "all" || item.type === typeFilter;
-      const haystack = [item.title, item.description, item.state].filter(Boolean).join(" ").toLowerCase();
+      const haystack = [item.title, item.description, item.state, item.submissionState].filter(Boolean).join(" ").toLowerCase();
       const hasDueDate = Boolean(item.dueDate);
       const turnedIn = isTurnedIn(item);
       const due = dueTimestamp(item);
@@ -155,7 +154,11 @@ export default function DashboardPage() {
 
         {visibleItems.length === 0 ? <p className="muted empty">Nothing matches your filters.</p> :
         <div className="list">{visibleItems.map((item)=><div className="item" key={item.type+"-"+item.id}>
-          <div className="item-top"><span className="badge">{item.type}</span>{item.state && <span className="badge">{item.state.toLowerCase()}</span>}</div>
+          <div className="item-top">
+            <span className="badge">{item.type}</span>
+            {item.state && <span className="badge">{item.state.toLowerCase()}</span>}
+            {item.turnedIn && <span className="badge">turned in</span>}
+          </div>
           <strong>{item.title}</strong>
           {item.description && <span className="muted description">{item.description}</span>}
           {(item.dueDate || item.dueTime) && <span className="due">Due {item.dueDate ?? "date unavailable"}{item.dueTime ? " at "+item.dueTime : ""}</span>}
