@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const { tokens } = await createOAuthClient().getToken(code);
     if (!tokens.refresh_token) return NextResponse.json({ error: "Google did not return a refresh token. Try connecting again." }, { status: 400 });
 
-    const response = NextResponse.redirect(new URL("/dashboard", request.url));
+    const response = NextResponse.redirect(new URL("/home", request.url));
     response.cookies.set(sessionCookie, encryptRefreshToken(tokens.refresh_token), {
       httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 30
     });
