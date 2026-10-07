@@ -25,7 +25,7 @@ export function encryptRefreshToken(refreshToken: string) {
 export function decryptRefreshToken(value: string) {
   const [ivText, tagText, encryptedText] = value.split(".");
   if (!ivText || !tagText || !encryptedText) throw new Error("Invalid session.");
-  const decipher = crypto.createDecipheriv("aes-256-gcm", secretKey(), iv && Buffer.from(ivText, "base64url"));
+  const decipher = crypto.createDecipheriv("aes-256-gcm", secretKey(), Buffer.from(ivText, "base64url"));
   decipher.setAuthTag(Buffer.from(tagText, "base64url"));
   return Buffer.concat([decipher.update(Buffer.from(encryptedText, "base64url")), decipher.final()]).toString("utf8");
 }
