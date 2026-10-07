@@ -1,6 +1,6 @@
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;background:#0b0d12;color:#f5f7fb}
-button,a{font:inherit}
+button,a,input,select{font:inherit}
 .container{max-width:1100px;margin:0 auto;padding:48px 24px}
 .card{background:#151923;border:1px solid #272d3a;border-radius:16px;padding:24px}
 .muted{color:#9aa3b2}
@@ -12,4 +12,17 @@ h2{margin-top:0}
 .list{display:grid;gap:10px;margin-top:18px}
 .item{display:block;background:#10131a;border:1px solid #272d3a;border-radius:12px;padding:16px}
 .item strong{display:block;margin-bottom:6px}
+.course-button{text-align:left;color:inherit;width:100%;cursor:pointer}
+.course-button:hover,.course-button.selected{border-color:#6f7b92}
+.section-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.controls{display:grid;grid-template-columns:minmax(180px,2fr) repeat(3,minmax(120px,1fr));gap:10px;margin-top:18px}
+.input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #343b4a;background:#10131a;color:#f5f7fb}
+.sort-buttons{display:flex;align-items:center;gap:10px;margin-top:12px}
+.text-button{background:none;border:0;color:#cbd3e1;cursor:pointer;padding:2px}
+.text-button:hover{text-decoration:underline}
+.item-top{display:flex;gap:6px;margin-bottom:8px}
+.description{display:block;white-space:pre-wrap;line-height:1.5}
+.due{display:block;margin-top:10px;font-weight:700;color:#d7deeb}
+.empty{margin-top:20px}
 .error{border-color:#713d3d;color:#ffb4b4}
+@media(max-width:760px){.container{padding:24px 16px}.controls{grid-template-columns:1fr}.sort-buttons{flex-wrap:wrap}h1{font-size:36px}}
