@@ -27,6 +27,26 @@ function dueTime(item: { dueTime?: { hours?: number|null; minutes?: number|null;
   return [String(item.dueTime.hours).padStart(2,"0"), String(item.dueTime.minutes).padStart(2,"0"), String(item.dueTime.seconds ?? 0).padStart(2,"0")].join(":");
 }
 
+async function listAllStudentSubmissions(classroom: ReturnType<typeof createClassroomClient>, courseId: string) {
+  const submissions = [];
+  let pageToken: string | undefined;
+
+  do {
+    const response = await classroom.courses.courseWork.studentSubmissions.list({
+      courseId,
+      courseWorkId:"-",
+      userId:"me",
+      pageSize:100,
+      pageToken
+    });
+
+    submissions.push(...(response.data.studentSubmissions ?? []));
+    pageToken = response.data.nextPageToken ?? undefined;
+  } while (pageToken);
+
+  return submissions;
+}
+
 export async function GET(_request: Request, { params }: { params: Promise<{ courseId:string }> }) {
   try {
     const value = (await cookies()).get(sessionCookie)?.value;
@@ -34,19 +54,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cou
     const { courseId } = await params;
     const classroom = createClassroomClient(decryptRefreshToken(value));
 
-    const [courseWorkResponse, materialsResponse, submissionsResponse] = await Promise.all([
+    const [courseWorkResponse, materialsResponse, submissions] = await Promise.all([
       classroom.courses.courseWork.list({ courseId, pageSize:100, orderBy:"updateTime desc" }),
       classroom.courses.courseWorkMaterials.list({ courseId, pageSize:100, orderBy:"updateTime desc" }),
-      classroom.courses.courseWork.studentSubmissions.list({
-        courseId,
-        courseWorkId:"-",
-        userId:"me",
-        pageSize:100
-      })
+      listAllStudentSubmissions(classroom, courseId)
     ]);
 
     const submissionsByCourseWorkId = new Map(
-      (submissionsResponse.data.studentSubmissions ?? [])
+      submissions
         .filter((submission) => submission.courseWorkId)
         .map((submission) => [submission.courseWorkId as string, submission])
     );
