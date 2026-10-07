@@ -7,7 +7,7 @@ import { decryptRefreshToken, sessionCookie } from "@/app/lib/session";
 type Item={id:string;courseId:string;courseName:string;type:"assignment"|"material";title:string;description:string|null;state:string|null;submissionState:string|null;turnedIn:boolean;dueDate:string|null;dueTime:string|null;alternateLink:string|null};
 function dateValue(item:any){if(!item.dueDate?.year||!item.dueDate.month||!item.dueDate.day)return null;return [item.dueDate.year,String(item.dueDate.month).padStart(2,"0"),String(item.dueDate.day).padStart(2,"0")].join("-")}
 function timeValue(item:any){if(item.dueTime?.hours==null||item.dueTime.minutes==null)return null;return [String(item.dueTime.hours).padStart(2,"0"),String(item.dueTime.minutes).padStart(2,"0"),String(item.dueTime.seconds??0).padStart(2,"0")].join(":")}
-async function allPages<T>(getPage:(pageToken?:string)=>Promise<{data:{items?:T[];nextPageToken?:string|null}}>){const result:T[]=[];let pageToken:string|undefined;do{const r=await getPage(pageToken);result.push(...(r.data.items??[]));pageToken=r.data.nextPageToken??undefined}while(pageToken);return result}
+async function allPages<T>(getPage:(pageToken?:string)=>Promise<any>){const result:T[]=[];let pageToken:string|undefined;do{const r=await getPage(pageToken);result.push(...(r.data.items??[]));pageToken=r.data.nextPageToken??undefined}while(pageToken);return result}
 async function submissions(classroom:any,courseId:string){const result:any[]=[];let pageToken:string|undefined;do{const r=await classroom.courses.courseWork.studentSubmissions.list({courseId,courseWorkId:"-",userId:"me",pageSize:100,pageToken});result.push(...(r.data.studentSubmissions??[]));pageToken=r.data.nextPageToken??undefined}while(pageToken);return result}
 
 export async function GET(){
