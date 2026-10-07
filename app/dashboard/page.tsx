@@ -4,12 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 
 type Course = { id:string; name:string; section:string|null; room:string|null; state:string|null };
 type WorkItem = { id:string; type:"assignment"|"material"; title:string; description:string|null; state:string|null; dueDate:string|null; dueTime:string|null; alternateLink:string|null };
-
 type SortKey = "due" | "title" | "type" | "state";
+type ViewFilter = "all" | "upcoming" | "overdue";
 
 function dueTimestamp(item: WorkItem) {
   if (!item.dueDate) return Number.POSITIVE_INFINITY;
   return new Date(item.dueDate + "T" + (item.dueTime ?? "23:59:59")).getTime();
+}
+
+function isTurnedIn(item: WorkItem) {
+  const state = (item.state ?? "").toLowerCase();
+  return state.includes("turned") || state.includes("submitted");
 }
 
 export default function DashboardPage() {
@@ -23,6 +28,10 @@ export default function DashboardPage() {
   const [typeFilter,setTypeFilter]=useState<"all"|"assignment"|"material">("all");
   const [sortKey,setSortKey]=useState<SortKey>("due");
   const [sortDirection,setSortDirection]=useState<"asc"|"desc">("asc");
+  const [viewFilter,setViewFilter]=useState<ViewFilter>("all");
+  const [hideMaterials,setHideMaterials]=useState(false);
+  const [hideTurnedIn,setHideTurnedIn]=useState(false);
+  const [hideNoDueDate,setHideNoDueDate]=useState(false);
 
   useEffect(() => {
     fetch("/api/classroom/courses")
@@ -33,7 +42,7 @@ export default function DashboardPage() {
   }, []);
 
   async function openCourse(course:Course) {
-    setSelectedCourse(course); setItems([]); setSearch(""); setTypeFilter("all"); setSortKey("due"); setSortDirection("asc"); setLoadingItems(true); setError(null);
+    setSelectedCourse(course); setItems([]); setSearch(""); setTypeFilter("all"); setSortKey("due"); setSortDirection("asc"); setViewFilter("all"); setHideMaterials(false); setHideTurnedIn(false); setHideNoDueDate(false); setLoadingItems(true); setError(null);
     try {
       const response=await fetch("/api/classroom/courses/"+encodeURIComponent(course.id)+"/work");
       const data=await response.json();
@@ -45,10 +54,25 @@ export default function DashboardPage() {
 
   const visibleItems = useMemo(() => {
     const query = search.trim().toLowerCase();
+    const now = Date.now();
+
     const filtered = items.filter((item) => {
       const matchesType = typeFilter === "all" || item.type === typeFilter;
       const haystack = [item.title, item.description, item.state].filter(Boolean).join(" ").toLowerCase();
-      return matchesType && (!query || haystack.includes(query));
+      const hasDueDate = Boolean(item.dueDate);
+      const turnedIn = isTurnedIn(item);
+      const due = dueTimestamp(item);
+      const matchesView =
+        viewFilter === "all" ||
+        (viewFilter === "upcoming" && hasDueDate && due >= now && !turnedIn) ||
+        (viewFilter === "overdue" && hasDueDate && due < now && !turnedIn);
+
+      return matchesType &&
+        (!query || haystack.includes(query)) &&
+        matchesView &&
+        !(hideMaterials && item.type === "material") &&
+        !(hideTurnedIn && turnedIn) &&
+        !(hideNoDueDate && !hasDueDate);
     });
 
     return [...filtered].sort((a,b) => {
@@ -59,7 +83,7 @@ export default function DashboardPage() {
       if (sortKey === "state") result = (a.state ?? "").localeCompare(b.state ?? "");
       return sortDirection === "asc" ? result : -result;
     });
-  }, [items, search, typeFilter, sortKey, sortDirection]);
+  }, [items, search, typeFilter, sortKey, sortDirection, viewFilter, hideMaterials, hideTurnedIn, hideNoDueDate]);
 
   function changeSort(next: SortKey) {
     if (sortKey === next) setSortDirection((direction) => direction === "asc" ? "desc" : "asc");
@@ -100,6 +124,25 @@ export default function DashboardPage() {
           <button className="btn secondary" onClick={()=>setSortDirection((direction)=>direction==="asc"?"desc":"asc")}>
             {sortDirection === "asc" ? "Ascending ↑" : "Descending ↓"}
           </button>
+        </div>
+
+        <div className="filter-section">
+          <div className="filter-title">View</div>
+          <div className="filter-buttons">
+            <button className={"filter-button"+(viewFilter==="all" ? " active" : "")} onClick={()=>setViewFilter("all")}>All</button>
+            <button className={"filter-button"+(viewFilter==="upcoming" ? " active" : "")} onClick={()=>setViewFilter("upcoming")}>Upcoming</button>
+            <button className={"filter-button"+(viewFilter==="overdue" ? " active" : "")} onClick={()=>setViewFilter("overdue")}>Overdue</button>
+          </div>
+        </div>
+
+        <div className="filter-section">
+          <div className="filter-title">Hide</div>
+          <div className="checkbox-grid">
+            <label className="checkbox-label"><input type="checkbox" checked={hideMaterials} onChange={(event)=>setHideMaterials(event.target.checked)} /> <span>Materials</span></label>
+            <label className="checkbox-label"><input type="checkbox" checked={hideTurnedIn} onChange={(event)=>setHideTurnedIn(event.target.checked)} /> <span>Turned In</span></label>
+            <label className="checkbox-label"><input type="checkbox" checked={hideNoDueDate} onChange={(event)=>setHideNoDueDate(event.target.checked)} /> <span>No Due Date</span></label>
+            <label className="checkbox-label disabled-option"><input type="checkbox" disabled /> <span>Tagged as ___ <small>(coming later)</small></span></label>
+          </div>
         </div>
 
         <div className="sort-buttons">
