@@ -1,24 +1,26 @@
-import { google } from "googleapis";
 import { NextResponse } from "next/server";
+import { createOAuthClient, classroomScopes } from "@/app/lib/google";
+import { createOAuthState, stateCookie } from "@/app/lib/session";
 
 export async function GET() {
-  const client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-  );
-
-  const scopes = [
-    "https://www.googleapis.com/auth/classroom.courses.readonly",
-    "https://www.googleapis.com/auth/classroom.coursework.me.readonly",
-    "https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly"
-  ];
+  const client = createOAuthClient();
+  const state = createOAuthState();
 
   const url = client.generateAuthUrl({
-    access_type:"offline",
-    scope:scopes,
-    prompt:"consent"
+    access_type: "offline",
+    scope: classroomScopes,
+    prompt: "consent",
+    state
   });
 
-  return NextResponse.redirect(url);
+  const response = NextResponse.redirect(url);
+  response.cookies.set(stateCookie, state, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 600
+  });
+
+  return response;
 }

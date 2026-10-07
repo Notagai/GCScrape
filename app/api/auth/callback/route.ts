@@ -1,40 +1,59 @@
-import { google } from "googleapis";
 import { NextResponse } from "next/server";
+import { createOAuthClient } from "@/app/lib/google";
+import {
+  encryptRefreshToken,
+  sessionCookie,
+  stateCookie
+} from "@/app/lib/session";
+import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
+  const returnedState = searchParams.get("state");
+  const cookieStore = await cookies();
+  const expectedState = cookieStore.get(stateCookie)?.value;
 
   if (!code) {
-    return NextResponse.json({error:"Missing OAuth code"}, {status:400});
+    return NextResponse.json({ error: "Missing OAuth code" }, { status: 400 });
+  }
+
+  if (!returnedState || !expectedState || returnedState !== expectedState) {
+    return NextResponse.json({ error: "Invalid OAuth state" }, { status: 400 });
   }
 
   try {
-    const client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
-    );
-
+    const client = createOAuthClient();
     const { tokens } = await client.getToken(code);
-    client.setCredentials(tokens);
 
-    const classroom = google.classroom({version:"v1", auth:client});
-    const response = await classroom.courses.list({pageSize:100});
+    if (!tokens.refresh_token) {
+      return NextResponse.json(
+        { error: "Google did not return a refresh token. Try connecting again." },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json({
-      ok:true,
-      message:"OAuth and Classroom API access succeeded.",
-      courses:(response.data.courses ?? []).map(course => ({
-        id:course.id,
-        name:course.name,
-        section:course.section ?? null,
-        room:course.room ?? null,
-        state:course.courseState ?? null
-      }))
+    const response = NextResponse.redirect(new URL("/dashboard", request.url));
+
+    response.cookies.set(sessionCookie, encryptRefreshToken(tokens.refresh_token), {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30
     });
+
+    response.cookies.set(stateCookie, "", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 0
+    });
+
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown OAuth error";
-    return NextResponse.json({ok:false,error:message},{status:500});
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
