@@ -1,3 +1,4 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { google } from "googleapis";
 
 export const classroomScopes = [
@@ -7,8 +8,34 @@ export const classroomScopes = [
   "https://www.googleapis.com/auth/classroom.student-submissions.me.readonly"
 ];
 
+type AppEnv = {
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  GOOGLE_REDIRECT_URI?: string;
+  SESSION_SECRET?: string;
+};
+
+export function getAppEnv(): AppEnv {
+  try {
+    const context = getCloudflareContext();
+    return context.env as AppEnv;
+  } catch {
+    return process.env;
+  }
+}
+
+function required(name: keyof AppEnv) {
+  const value = getAppEnv()[name];
+  if (!value) throw new Error(`Missing required environment setting: ${name}`);
+  return value;
+}
+
 export function createOAuthClient() {
-  return new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, process.env.GOOGLE_REDIRECT_URI);
+  return new google.auth.OAuth2(
+    required("GOOGLE_CLIENT_ID"),
+    required("GOOGLE_CLIENT_SECRET"),
+    required("GOOGLE_REDIRECT_URI")
+  );
 }
 
 export function createClassroomClient(refreshToken: string) {
