@@ -20,7 +20,7 @@ export function getAppEnv(): AppEnv {
     const context = getCloudflareContext();
     return context.env as AppEnv;
   } catch {
-    return process.env;
+    return process.env as AppEnv;
   }
 }
 
