@@ -1,4 +1,3 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { google } from "googleapis";
 
 export const classroomScopes = [
@@ -16,12 +15,7 @@ type AppEnv = {
 };
 
 export function getAppEnv(): AppEnv {
-  try {
-    const context = getCloudflareContext();
-    return context.env as AppEnv;
-  } catch {
-    return process.env as AppEnv;
-  }
+  return process.env as AppEnv;
 }
 
 function required(name: keyof AppEnv) {
