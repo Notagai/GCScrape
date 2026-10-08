@@ -1,3 +1,4 @@
+import { env as cloudflareEnv } from "cloudflare:workers";
 import { google } from "googleapis";
 
 export const classroomScopes = [
@@ -15,7 +16,13 @@ type AppEnv = {
 };
 
 export function getAppEnv(): AppEnv {
-  return process.env as AppEnv;
+  const runtime = cloudflareEnv as unknown as AppEnv;
+  return {
+    GOOGLE_CLIENT_ID: runtime.GOOGLE_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: runtime.GOOGLE_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET,
+    GOOGLE_REDIRECT_URI: runtime.GOOGLE_REDIRECT_URI ?? process.env.GOOGLE_REDIRECT_URI,
+    SESSION_SECRET: runtime.SESSION_SECRET ?? process.env.SESSION_SECRET
+  };
 }
 
 function required(name: keyof AppEnv) {
